@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrisTris RL Trainer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    .controls {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .control-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      font-weight: 600;
+    }
+    
+    input[type="number"] {
+      padding: 0.5rem;
+      border: none;
+      border-radius: 6px;
+      width: 120px;
+      font-size: 1rem;
+    }
+    
+    button {
+      padding: 0.7rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s;
+      font-size: 1rem;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-train {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(16,185,129,0.4);
+    }
+    
+    .btn-stop {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(239,68,68,0.4);
+    }
+    
+    .btn-save {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+    }
+    
+    .btn-test {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(245,158,11,0.4);
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 900;
+    }
+    
+    .visualization {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-width: 600px;
+      margin: 0 auto;
+      aspect-ratio: 1;
+      background: white;
+      padding: 8px;
+      border-radius: 12px;
+    }
+    
+    .macro-cell {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      background: #64748b;
+      padding: 3px;
+      border-radius: 6px;
+      position: relative;
+    }
+    
+    .micro-cell {
+      background: #1e293b;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.8rem, 2vw, 1.2rem);
+      font-weight: 900;
+      color: white;
+    }
+    
+    .winner-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 900;
+      border-radius: 6px;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 30px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 15px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    
+    .log {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+    }
+    
+    .log-entry {
+      margin-bottom: 0.5rem;
+      opacity: 0.9;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 TrisTris RL Trainer</h1>
+    
+    <div class="controls">
+      <div class="control-row">
+        <label>Episodes:</label>
+        <input type="number" id="episodes" value="100" min="1" max="10000">
+        
+        <label>Learning Rate:</label>
+        <input type="number" id="lr" value="0.0005" step="0.0001" min="0.0001" max="0.01">
+        
+        <label>Epsilon:</label>
+        <input type="number" id="epsilon" value="0.2" step="0.05" min="0" max="1">
+      </div>
+      
+      <div class="control-row">
+        <button class="btn-train" onclick="startTraining()">🚀 Inizia Training</button>
+        <button class="btn-stop" onclick="stopTraining()">⏹️ Stop</button>
+        <button class="btn-save" onclick="saveModel()">💾 Salva Modello</button>
+        <button class="btn-test" onclick="testGame()">🎮 Test Game</button>
+      </div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Episode</div>
+        <div class="stat-value" id="episode-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Win Rate (O)</div>
+        <div class="stat-value" id="win-rate">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Draw Rate</div>
+        <div class="stat-value" id="draw-rate">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Game Length</div>
+        <div class="stat-value" id="avg-length">0</div>
+      </div>
+    </div>
+    
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress" style="width: 0%">0%</div>
+    </div>
+    
+    <div class="visualization">
+      <h2 style="margin-bottom: 1rem; text-align: center;">Current Game</h2>
+      <div class="game-board" id="board"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    // Variabili globali
+    let model = null;
+    let trainingActive = false;
+    let stats = { wins: 0, draws: 0, losses: 0, moves: 0, games: 0 };
+    
+    // Inizializza
+    async function init() {
+      await createModel();
+      log('✅ Modello inizializzato');
+      renderBoard(createInitialState());
+    }
+    
+    // Crea modello
+    async function createModel() {
+      model = tf.sequential({
+        layers: [
+          tf.layers.dense({ inputShape: [254], units: 256, activation: 'relu' }),
+          tf.layers.dropout({ rate: 0.3 }),
+          tf.layers.dense({ units: 128, activation: 'relu' }),
+          tf.layers.dropout({ rate: 0.2 }),
+          tf.layers.dense({ units: 64, activation: 'relu' }),
+          tf.layers.dense({ units: 1, activation: 'tanh' })
+        ]
+      });
+      
+      const lr = parseFloat(document.getElementById('lr').value);
+      model.compile({
+        optimizer: tf.train.adam(lr),
+        loss: 'meanSquaredError'
+      });
+    }
+    
+    // Stato iniziale
+    function createInitialState() {
+      return {
+        macroBoard: Array(3).fill(null).map(() => Array(3).fill(null)),
+        microBoards: Array(9).fill(null).map(() => 
+          Array(3).fill(null).map(() => Array(3).fill(null))
+        ),
+        turn: 0,
+        nextForcedCell: null
+      };
+    }
+    
+    // Training
+    async function startTraining() {
+      const episodes = parseInt(document.getElementById('episodes').value);
+      trainingActive = true;
+      stats = { wins: 0, draws: 0, losses: 0, moves: 0, games: 0 };
+      
+      log(`🚀 Inizio training: ${episodes} episodes`);
+      
+      for (let ep = 0; ep < episodes && trainingActive; ep++) {
+        await playTrainingGame(ep);
+        
+        if ((ep + 1) % 10 === 0) {
+          updateStats(ep + 1, episodes);
+        }
+      }
+      
+      log('✅ Training completato!');
+      trainingActive = false;
+    }
+    
+    async function playTrainingGame(episode) {
+      const state = createInitialState();
+      const epsilon = parseFloat(document.getElementById('epsilon').value);
+      const experiences = [];
+      let movesCount = 0;
+      
+      while (true) {
+        const gameEnd = checkGameEnd(state);
+        if (gameEnd.finished) {
+          stats.games++;
+          stats.moves += movesCount;
+          
+          let reward = 0;
+          if (gameEnd.winner === 'draw') {
+            stats.draws++;
+            reward = 0;
+          } else {
+            reward = gameEnd.winner === 'O' ? 1 : -1;
+            if (gameEnd.winner === 'O') stats.wins++;
+            else stats.losses++;
+          }
+          
+          await updateModel(experiences, reward);
+          break;
+        }
+        
+        const moves = getAllMoves(state);
+        if (moves.length === 0) break;
+        
+        let move;
+        if (Math.random() < epsilon) {
+          move = moves[Math.floor(Math.random() * moves.length)];
+        } else {
+          move = await selectBestMove(state, moves);
+        }
+        
+        experiences.push({ state: encodeState(state), move });
+        executeMove(state, move);
+        movesCount++;
+      }
+      
+      if (episode % 5 === 0) {
+        renderBoard(state);
+      }
+    }
+    
+    async function updateModel(experiences, finalReward) {
+      if (experiences.length === 0) return;
+      
+      const states = [];
+      const targets = [];
+      const gamma = 0.95;
+      
+      for (let i = experiences.length - 1; i >= 0; i--) {
+        const exp = experiences[i];
+        const reward = finalReward * Math.pow(gamma, experiences.length - 1 - i);
+        const adjustedReward = (experiences.length - i) % 2 === 0 ? reward : -reward;
+        
+        states.push(exp.state);
+        targets.push(adjustedReward);
+      }
+      
+      const xs = tf.tensor2d(states);
+      const ys = tf.tensor2d(targets, [targets.length, 1]);
+      
+      await model.fit(xs, ys, { epochs: 1, verbose: 0 });
+      
+      xs.dispose();
+      ys.dispose();
+    }
+    
+    async function selectBestMove(state, moves) {
+      let best = moves[0];
+      let bestVal = -Infinity;
+      
+      for (const move of moves) {
+        const testState = JSON.parse(JSON.stringify(state));
+        testState.microBoards[move.micro][move.row][move.col] = 'O';
+        testState.turn = 0;
+        
+        const enc = encodeState(testState);
+        const pred = model.predict(tf.tensor2d([enc]));
+        const val = (await pred.data())[0];
+        pred.dispose();
+        
+        if (val > bestVal) {
+          bestVal = val;
+          best = move;
+        }
+      }
+      
+      return best;
+    }
+    
+    function encodeState(state) {
+      const enc = [];
+      
+      for (let mi = 0; mi < 9; mi++) {
+        const board = state.microBoards[mi];
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const cell = board[r][c];
+            if (cell === null) enc.push(1, 0, 0);
+            else if (cell === 'X') enc.push(0, 1, 0);
+            else enc.push(0, 0, 1);
+          }
+        }
+      }
+      
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const cell = state.macroBoard[r][c];
+          if (cell === 'X') enc.push(-1);
+          else if (cell === 'O') enc.push(1);
+          else enc.push(0);
+        }
+      }
+      
+      enc.push(state.turn === 0 ? -1 : 1);
+      enc.push(state.nextForcedCell === null ? -1 : state.nextForcedCell / 8);
+      
+      return enc;
+    }
+    
+    function getAllMoves(state) {
+      const moves = [];
+      const forced = state.nextForcedCell;
+      
+      if (forced !== null && isMicroPlayable(state, forced)) {
+        const board = state.microBoards[forced];
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            if (board[r][c] === null) {
+              moves.push({ micro: forced, row: r, col: c });
+            }
+          }
+        }
+        return moves;
+      }
+      
+      for (let mi = 0; mi < 9; mi++) {
+        if (!isMicroPlayable(state, mi)) continue;
+        const board = state.microBoards[mi];
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            if (board[r][c] === null) {
+              moves.push({ micro: mi, row: r, col: c });
+            }
+          }
+        }
+      }
+      
+      return moves;
+    }
+    
+    function isMicroPlayable(state, idx) {
+      const r = Math.floor(idx / 3);
+      const c = idx % 3;
+      if (state.macroBoard[r][c] !== null) return false;
+      
+      const board = state.microBoards[idx];
+      return board.some(row => row.some(cell => cell === null));
+    }
+    
+    function executeMove(state, move) {
+      const symbol = state.turn === 0 ? 'X' : 'O';
+      state.microBoards[move.micro][move.row][move.col] = symbol;
+      
+      const winner = checkWin(state.microBoards[move.micro]);
+      if (winner) {
+        const r = Math.floor(move.micro / 3);
+        const c = move.micro % 3;
+        state.macroBoard[r][c] = winner;
+      }
+      
+      const nextCandidate = move.row * 3 + move.col;
+      state.nextForcedCell = isMicroPlayable(state, nextCandidate) ? nextCandidate : null;
+      state.turn = 1 - state.turn;
+    }
+    
+    function checkWin(board) {
+      const lines = [
+        [board[0], board[1], board[2]],
+        [[board[0][0], board[1][0], board[2][0]]],
+        [[board[0][1], board[1][1], board[2][1]]],
+        [[board[0][2], board[1][2], board[2][2]]],
+        [[board[0][0], board[1][1], board[2][2]]],
+        [[board[0][2], board[1][1], board[2][0]]]
+      ];
+      
+      for (const line of lines) {
+        if (Array.isArray(line[0]) && line[0][0] && line[0][0] === line[0][1] && line[0][1] === line[0][2]) {
+          return line[0][0];
+        }
+        if (!Array.isArray(line[0]) && line[0][0] && line[0][0] === line[1][0] && line[1][0] === line[2][0]) {
+          return line[0][0];
+        }
+      }
+      
+      for (let i = 0; i < 3; i++) {
+        if (board[i][0] && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
+          return board[i][0];
+        }
+      }
+      
+      if (board[0][0] && board[0][0] === board[1][1] && board[1][1] === board[2][2]) return board[0][0];
+      if (board[0][2] && board[0][2] === board[1][1] && board[1][1] === board[2][0]) return board[0][2];
+      
+      return null;
+    }
+    
+    function checkGameEnd(state) {
+      const winner = checkWin(state.macroBoard);
+      if (winner) return { finished: true, winner };
+      
+      const hasPlayable = state.microBoards.some((_, idx) => isMicroPlayable(state, idx));
+      if (!hasPlayable) return { finished: true, winner: 'draw' };
+      
+      return { finished: false, winner: null };
+    }
+    
+    function renderBoard(state) {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      
+      for (let mi = 0; mi < 9; mi++) {
+        const macroCell = document.createElement('div');
+        macroCell.className = 'macro-cell';
+        
+        const r = Math.floor(mi / 3);
+        const c = mi % 3;
+        const macroWinner = state.macroBoard[r][c];
+        
+        if (macroWinner) {
+          const overlay = document.createElement('div');
+          overlay.className = 'winner-overlay';
+          overlay.textContent = macroWinner;
+          macroCell.appendChild(overlay);
+        }
+        
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'micro-cell';
+            cell.textContent = state.microBoards[mi][r][c] || '';
+            macroCell.appendChild(cell);
+          }
+        }
+        
+        board.appendChild(macroCell);
+      }
+    }
+    
+    function updateStats(episode, total) {
+      document.getElementById('episode-count').textContent = episode;
+      
+      const winRate = stats.games > 0 ? (stats.wins / stats.games * 100).toFixed(1) : 0;
+      const drawRate = stats.games > 0 ? (stats.draws / stats.games * 100).toFixed(1) : 0;
+      const avgLength = stats.games > 0 ? (stats.moves / stats.games).toFixed(1) : 0;
+      
+      document.getElementById('win-rate').textContent = winRate + '%';
+      document.getElementById('draw-rate').textContent = drawRate + '%';
+      document.getElementById('avg-length').textContent = avgLength;
+      
+      const progress = (episode / total * 100).toFixed(0);
+      document.getElementById('progress').style.width = progress + '%';
+      document.getElementById('progress').textContent = progress + '%';
+    }
+    
+    function stopTraining() {
+      trainingActive = false;
+      log('⏹️ Training interrotto');
+    }
+    
+    async function saveModel() {
+      await model.save('indexeddb://tristris-rl-model');
+      log('💾 Modello salvato in IndexedDB!');
+      alert('Modello salvato! Ora è disponibile nella PWA TrisTris.');
+    }
+    
+    async function testGame() {
+      log('🎮 Test game...');
+      await playTrainingGame(-1);
+    }
+    
+    function log(message) {
+      const logEl = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.insertBefore(entry, logEl.firstChild);
+      
+      while (logEl.children.length > 50) {
+        logEl.removeChild(logEl.lastChild);
+      }
+    }
+    
+    // Start
+    init();
+  </script>
+</body>
+</html>
