@@ -614,7 +614,8 @@
     }
     
     async function saveModel() {
-      await model.save('indexeddb://tristris-rl-model');
+      const saveResult = await model.save('indexeddb://tristris-rl-model');
+      log(saveResult);
       log('💾 Modello salvato in IndexedDB!');
       alert('Modello salvato! Ora è disponibile nella PWA TrisTris.');
     }
