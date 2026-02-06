@@ -380,7 +380,7 @@
         movesCount++;
       }
       
-      if (episode % 5 === 0) {
+      if (episode % 2 === 0) {
         renderBoard(state);
       }
     }
@@ -409,21 +409,27 @@
       xs.dispose();
       ys.dispose();
     }
-    
+
+    // Select the best move between all the possible moves using the NN
     async function selectBestMove(state, moves) {
+      // let the first move be the best 
       let best = moves[0];
       let bestVal = -Infinity;
-      
+
+      // for every move
       for (const move of moves) {
         const testState = JSON.parse(JSON.stringify(state));
         testState.microBoards[move.micro][move.row][move.col] = 'O';
         testState.turn = 0;
-        
+
+        // get the state of the board with that move played
         const enc = encodeState(testState);
+        // let the model predict (estimate) the value of the move
         const pred = model.predict(tf.tensor2d([enc]));
         const val = (await pred.data())[0];
         pred.dispose();
-        
+
+        // if this move has a better value choose it as best move
         if (val > bestVal) {
           bestVal = val;
           best = move;
@@ -614,9 +620,9 @@
     }
     
     async function saveModel() {
-      const saveResult = await model.save('indexeddb://tristris-rl-model');
+      const saveResult = await model.save('C:\Users\CRE6683\OneDrive - ION\Desktop\projects\RL_training_tool-main\tristris_rl_model.keras');
       log(saveResult);
-      log('💾 Modello salvato in IndexedDB!');
+      log('💾 Modello salvato in projects!');
       alert('Modello salvato! Ora è disponibile nella PWA TrisTris.');
     }
     
