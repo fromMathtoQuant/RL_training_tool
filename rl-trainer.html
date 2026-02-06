@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrisTris RL Trainer</title>
+  <title>TrisTris RL Trainer Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400..800&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -13,31 +16,91 @@
     }
     
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
       min-height: 100vh;
       padding: 2rem;
-      color: white;
+      color: #e0e7ff;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
     }
     
     .container {
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
+      position: relative;
+      z-index: 1;
     }
     
     h1 {
+      font-family: 'Syne', sans-serif;
       text-align: center;
-      font-size: 2.5rem;
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+      text-shadow: 0 0 40px rgba(129, 140, 248, 0.3);
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #a5b4fc;
+      font-size: 0.9rem;
       margin-bottom: 2rem;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+    
+    .model-status {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    
+    .model-status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
     
     .controls {
-      background: rgba(255,255,255,0.1);
-      border-radius: 12px;
+      background: rgba(30, 27, 75, 0.5);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 2rem;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
     }
     
     .control-row {
@@ -53,53 +116,121 @@
     }
     
     label {
-      font-weight: 600;
+      font-weight: 700;
+      color: #c7d2fe;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     
     input[type="number"] {
-      padding: 0.5rem;
-      border: none;
-      border-radius: 6px;
-      width: 120px;
-      font-size: 1rem;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      width: 130px;
+      font-size: 0.95rem;
+      color: #e0e7ff;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s;
+    }
+    
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
     }
     
     button {
-      padding: 0.7rem 1.5rem;
+      padding: 0.8rem 1.8rem;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.1s;
-      font-size: 1rem;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+      font-family: 'Space Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    button:hover::before {
+      width: 300px;
+      height: 300px;
     }
     
     button:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
+    }
+    
+    button span {
+      position: relative;
+      z-index: 1;
     }
     
     .btn-train {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
-      box-shadow: 0 4px 15px rgba(16,185,129,0.4);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+    }
+    
+    .btn-train:hover {
+      box-shadow: 0 6px 30px rgba(16, 185, 129, 0.6);
     }
     
     .btn-stop {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       color: white;
-      box-shadow: 0 4px 15px rgba(239,68,68,0.4);
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    }
+    
+    .btn-stop:hover {
+      box-shadow: 0 6px 30px rgba(239, 68, 68, 0.6);
     }
     
     .btn-save {
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
-      box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-save:hover {
+      box-shadow: 0 6px 30px rgba(59, 130, 246, 0.6);
     }
     
     .btn-test {
       background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
       color: white;
-      box-shadow: 0 4px 15px rgba(245,158,11,0.4);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+    }
+    
+    .btn-test:hover {
+      box-shadow: 0 6px 30px rgba(245, 158, 11, 0.6);
+    }
+    
+    .btn-reset {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+    }
+    
+    .btn-reset:hover {
+      box-shadow: 0 6px 30px rgba(139, 92, 246, 0.6);
     }
     
     .stats {
@@ -110,119 +241,266 @@
     }
     
     .stat-card {
-      background: rgba(255,255,255,0.15);
-      border-radius: 10px;
+      background: rgba(30, 27, 75, 0.4);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 12px;
       padding: 1.5rem;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
+      transition: all 0.3s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(129, 140, 248, 0.4);
+      box-shadow: 0 8px 30px rgba(129, 140, 248, 0.2);
     }
     
     .stat-label {
-      font-size: 0.9rem;
-      opacity: 0.9;
+      font-size: 0.75rem;
+      opacity: 0.8;
       margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #a5b4fc;
     }
     
     .stat-value {
-      font-size: 2rem;
-      font-weight: 900;
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     
     .visualization {
-      background: rgba(255,255,255,0.1);
-      border-radius: 12px;
-      padding: 1.5rem;
-      backdrop-filter: blur(10px);
+      background: rgba(30, 27, 75, 0.4);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(20px);
+    }
+    
+    .viz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .viz-header h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #c7d2fe;
+    }
+    
+    .current-move {
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(129, 140, 248, 0.4);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      color: #c7d2fe;
     }
     
     .game-board {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      max-width: 600px;
-      margin: 0 auto;
+      gap: 10px;
+      max-width: 700px;
+      margin: 0 auto 2rem;
       aspect-ratio: 1;
-      background: white;
-      padding: 8px;
-      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 27, 75, 0.8) 100%);
+      padding: 10px;
+      border-radius: 16px;
+      border: 2px solid rgba(129, 140, 248, 0.3);
     }
     
     .macro-cell {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 3px;
-      background: #64748b;
-      padding: 3px;
-      border-radius: 6px;
+      gap: 4px;
+      background: linear-gradient(135deg, rgba(71, 85, 105, 0.4) 0%, rgba(51, 65, 85, 0.4) 100%);
+      padding: 4px;
+      border-radius: 10px;
       position: relative;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    
+    .macro-cell.forced {
+      border-color: #fbbf24;
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+      animation: glow 1.5s infinite;
+    }
+    
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+      50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.8); }
+    }
+    
+    .macro-cell.last-move {
+      border-color: #22c55e;
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
     }
     
     .micro-cell {
-      background: #1e293b;
-      border-radius: 3px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 5px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(0.8rem, 2vw, 1.2rem);
+      font-size: clamp(1rem, 2.5vw, 1.5rem);
       font-weight: 900;
+      color: #e0e7ff;
+      transition: all 0.3s;
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      position: relative;
+    }
+    
+    .micro-cell.last-played {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
       color: white;
+      border-color: #22c55e;
+      animation: highlight 0.5s;
+    }
+    
+    @keyframes highlight {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    .micro-cell:empty {
+      opacity: 0.5;
     }
     
     .winner-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.7);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      font-size: 4rem;
       font-weight: 900;
-      border-radius: 6px;
+      border-radius: 10px;
+      animation: fadeIn 0.5s;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
     
     .progress-bar {
       width: 100%;
-      height: 30px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 15px;
+      height: 35px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 18px;
       overflow: hidden;
       margin-top: 1rem;
     }
     
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      background: linear-gradient(90deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
       transition: width 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
       font-size: 0.9rem;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
     
     .log {
-      background: rgba(0,0,0,0.3);
-      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 10px;
       padding: 1rem;
-      max-height: 200px;
+      max-height: 250px;
       overflow-y: auto;
-      font-family: 'Courier New', monospace;
-      font-size: 0.85rem;
-      margin-top: 1rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      margin-top: 1.5rem;
+    }
+    
+    .log::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .log::-webkit-scrollbar-track {
+      background: rgba(30, 27, 75, 0.4);
+      border-radius: 4px;
+    }
+    
+    .log::-webkit-scrollbar-thumb {
+      background: rgba(129, 140, 248, 0.4);
+      border-radius: 4px;
+    }
+    
+    .log::-webkit-scrollbar-thumb:hover {
+      background: rgba(129, 140, 248, 0.6);
     }
     
     .log-entry {
       margin-bottom: 0.5rem;
       opacity: 0.9;
+      padding: 0.3rem 0.5rem;
+      border-left: 2px solid rgba(129, 140, 248, 0.3);
+      transition: all 0.2s;
     }
     
-    .hidden {
-      display: none;
+    .log-entry:hover {
+      background: rgba(129, 140, 248, 0.1);
+      border-left-color: #818cf8;
+    }
+    
+    .log-entry.move {
+      border-left-color: #22c55e;
+      color: #86efac;
+    }
+    
+    .log-entry.info {
+      border-left-color: #3b82f6;
+      color: #93c5fd;
+    }
+    
+    .log-entry.warning {
+      border-left-color: #f59e0b;
+      color: #fcd34d;
+    }
+    
+    .log-entry.success {
+      border-left-color: #22c55e;
+      color: #86efac;
+    }
+    
+    .move-indicator {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🧠 TrisTris RL Trainer</h1>
+    <div class="subtitle">Reinforcement Learning • Neural Network Training</div>
+    
+    <div class="model-status">
+      <span class="model-status-indicator"></span>
+      <span id="model-status-text">Modello: Caricamento in corso...</span>
+    </div>
     
     <div class="controls">
       <div class="control-row">
@@ -237,10 +515,11 @@
       </div>
       
       <div class="control-row">
-        <button class="btn-train" onclick="startTraining()">🚀 Inizia Training</button>
-        <button class="btn-stop" onclick="stopTraining()">⏹️ Stop</button>
-        <button class="btn-save" onclick="saveModel()">💾 Salva Modello</button>
-        <button class="btn-test" onclick="testGame()">🎮 Test Game</button>
+        <button class="btn-train" onclick="startTraining()"><span>🚀 Inizia Training</span></button>
+        <button class="btn-stop" onclick="stopTraining()"><span>⏹️ Stop</span></button>
+        <button class="btn-save" onclick="saveModel()"><span>💾 Salva Modello</span></button>
+        <button class="btn-test" onclick="testGame()"><span>🎮 Test Game</span></button>
+        <button class="btn-reset" onclick="resetModel()"><span>🔄 Reset Modello</span></button>
       </div>
     </div>
     
@@ -261,6 +540,10 @@
         <div class="stat-label">Avg Game Length</div>
         <div class="stat-value" id="avg-length">0</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Games</div>
+        <div class="stat-value" id="total-games">0</div>
+      </div>
     </div>
     
     <div class="progress-bar">
@@ -268,7 +551,10 @@
     </div>
     
     <div class="visualization">
-      <h2 style="margin-bottom: 1rem; text-align: center;">Current Game</h2>
+      <div class="viz-header">
+        <h2>Current Game</h2>
+        <div class="current-move" id="current-move">Waiting...</div>
+      </div>
       <div class="game-board" id="board"></div>
       <div class="log" id="log"></div>
     </div>
@@ -279,16 +565,60 @@
     let model = null;
     let trainingActive = false;
     let stats = { wins: 0, draws: 0, losses: 0, moves: 0, games: 0 };
+    let lastMove = null;
+    let forcedCell = null;
+    let totalGamesPlayed = 0;
     
     // Inizializza
     async function init() {
-      await createModel();
-      log('✅ Modello inizializzato');
+      log('🔧 Inizializzazione sistema...', 'info');
+      await loadOrCreateModel();
       renderBoard(createInitialState());
+      log('✅ Sistema pronto!', 'success');
     }
     
-    // Crea modello
+    // Carica o crea modello
+    async function loadOrCreateModel() {
+      try {
+        // Prova a caricare il modello da IndexedDB
+        const modelInfo = await tf.io.listModels();
+        const modelKey = 'indexeddb://tristris-rl-model';
+        
+        if (modelInfo[modelKey]) {
+          log('📂 Modello trovato, caricamento in corso...', 'info');
+          model = await tf.loadLayersModel(modelKey);
+          
+          // Ricompila il modello
+          const lr = parseFloat(document.getElementById('lr').value);
+          model.compile({
+            optimizer: tf.train.adam(lr),
+            loss: 'meanSquaredError'
+          });
+          
+          log('✅ Modello caricato con successo!', 'success');
+          updateModelStatus('Modello pre-allenato caricato', true);
+          
+          // Carica statistiche
+          const savedStats = localStorage.getItem('tristris-stats');
+          if (savedStats) {
+            const parsed = JSON.parse(savedStats);
+            totalGamesPlayed = parsed.totalGames || 0;
+            document.getElementById('total-games').textContent = totalGamesPlayed;
+          }
+        } else {
+          log('⚠️ Nessun modello salvato trovato', 'warning');
+          await createModel();
+        }
+      } catch (error) {
+        log('⚠️ Errore nel caricamento: ' + error.message, 'warning');
+        await createModel();
+      }
+    }
+    
+    // Crea modello nuovo
     async function createModel() {
+      log('🏗️ Creazione nuovo modello...', 'info');
+      
       model = tf.sequential({
         layers: [
           tf.layers.dense({ inputShape: [254], units: 256, activation: 'relu' }),
@@ -305,6 +635,16 @@
         optimizer: tf.train.adam(lr),
         loss: 'meanSquaredError'
       });
+      
+      log('✅ Nuovo modello creato!', 'success');
+      updateModelStatus('Nuovo modello (non allenato)', false);
+    }
+    
+    function updateModelStatus(text, isTrained) {
+      const statusEl = document.getElementById('model-status-text');
+      const indicator = document.querySelector('.model-status-indicator');
+      statusEl.textContent = 'Modello: ' + text;
+      indicator.style.background = isTrained ? '#22c55e' : '#f59e0b';
     }
     
     // Stato iniziale
@@ -325,7 +665,8 @@
       trainingActive = true;
       stats = { wins: 0, draws: 0, losses: 0, moves: 0, games: 0 };
       
-      log(`🚀 Inizio training: ${episodes} episodes`);
+      log(`🚀 Inizio training: ${episodes} episodes`, 'info');
+      updateCurrentMove('Training in corso...');
       
       for (let ep = 0; ep < episodes && trainingActive; ep++) {
         await playTrainingGame(ep);
@@ -333,10 +674,19 @@
         if ((ep + 1) % 10 === 0) {
           updateStats(ep + 1, episodes);
         }
+        
+        // Piccola pausa per permettere il rendering
+        if (ep % 5 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
       }
       
-      log('✅ Training completato!');
+      log('✅ Training completato!', 'success');
       trainingActive = false;
+      updateCurrentMove('Training completato');
+      
+      // Salva automaticamente dopo il training
+      await saveModel();
     }
     
     async function playTrainingGame(episode) {
@@ -350,15 +700,22 @@
         if (gameEnd.finished) {
           stats.games++;
           stats.moves += movesCount;
+          totalGamesPlayed++;
           
           let reward = 0;
           if (gameEnd.winner === 'draw') {
             stats.draws++;
             reward = 0;
+            log(`Game ${episode + 1}: DRAW dopo ${movesCount} mosse`, 'info');
           } else {
             reward = gameEnd.winner === 'O' ? 1 : -1;
-            if (gameEnd.winner === 'O') stats.wins++;
-            else stats.losses++;
+            if (gameEnd.winner === 'O') {
+              stats.wins++;
+              log(`Game ${episode + 1}: VITTORIA O dopo ${movesCount} mosse`, 'success');
+            } else {
+              stats.losses++;
+              log(`Game ${episode + 1}: Vittoria X dopo ${movesCount} mosse`, 'info');
+            }
           }
           
           await updateModel(experiences, reward);
@@ -375,14 +732,25 @@
           move = await selectBestMove(state, moves);
         }
         
+        // Log della mossa
+        const symbol = state.turn === 0 ? 'X' : 'O';
+        log(`${symbol} → Macro[${move.micro}] Cell[${move.row},${move.col}]`, 'move');
+        
         experiences.push({ state: encodeState(state), move });
         executeMove(state, move);
         movesCount++;
+        
+        // Aggiorna lastMove e forcedCell per la visualizzazione
+        lastMove = move;
+        forcedCell = state.nextForcedCell;
       }
       
-      if (episode % 2 === 0) {
+      // Visualizza la partita finale ogni 3 episodi
+      if (episode % 3 === 0) {
         renderBoard(state);
       }
+      
+      document.getElementById('total-games').textContent = totalGamesPlayed;
     }
     
     async function updateModel(experiences, finalReward) {
@@ -410,26 +778,20 @@
       ys.dispose();
     }
 
-    // Select the best move between all the possible moves using the NN
     async function selectBestMove(state, moves) {
-      // let the first move be the best 
       let best = moves[0];
       let bestVal = -Infinity;
 
-      // for every move
       for (const move of moves) {
         const testState = JSON.parse(JSON.stringify(state));
         testState.microBoards[move.micro][move.row][move.col] = 'O';
         testState.turn = 0;
 
-        // get the state of the board with that move played
         const enc = encodeState(testState);
-        // let the model predict (estimate) the value of the move
         const pred = model.predict(tf.tensor2d([enc]));
         const val = (await pred.data())[0];
         pred.dispose();
 
-        // if this move has a better value choose it as best move
         if (val > bestVal) {
           bestVal = val;
           best = move;
@@ -526,27 +888,12 @@
     }
     
     function checkWin(board) {
-      const lines = [
-        [board[0], board[1], board[2]],
-        [[board[0][0], board[1][0], board[2][0]]],
-        [[board[0][1], board[1][1], board[2][1]]],
-        [[board[0][2], board[1][2], board[2][2]]],
-        [[board[0][0], board[1][1], board[2][2]]],
-        [[board[0][2], board[1][1], board[2][0]]]
-      ];
-      
-      for (const line of lines) {
-        if (Array.isArray(line[0]) && line[0][0] && line[0][0] === line[0][1] && line[0][1] === line[0][2]) {
-          return line[0][0];
-        }
-        if (!Array.isArray(line[0]) && line[0][0] && line[0][0] === line[1][0] && line[1][0] === line[2][0]) {
-          return line[0][0];
-        }
-      }
-      
       for (let i = 0; i < 3; i++) {
         if (board[i][0] && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
           return board[i][0];
+        }
+        if (board[0][i] && board[0][i] === board[1][i] && board[1][i] === board[2][i]) {
+          return board[0][i];
         }
       }
       
@@ -574,6 +921,16 @@
         const macroCell = document.createElement('div');
         macroCell.className = 'macro-cell';
         
+        // Evidenzia la cella forzata
+        if (forcedCell === mi) {
+          macroCell.classList.add('forced');
+        }
+        
+        // Evidenzia l'ultima mossa
+        if (lastMove && lastMove.micro === mi) {
+          macroCell.classList.add('last-move');
+        }
+        
         const r = Math.floor(mi / 3);
         const c = mi % 3;
         const macroWinner = state.macroBoard[r][c];
@@ -585,17 +942,37 @@
           macroCell.appendChild(overlay);
         }
         
-        for (let r = 0; r < 3; r++) {
-          for (let c = 0; c < 3; c++) {
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
             const cell = document.createElement('div');
             cell.className = 'micro-cell';
-            cell.textContent = state.microBoards[mi][r][c] || '';
+            
+            // Evidenzia l'ultima cella giocata
+            if (lastMove && lastMove.micro === mi && lastMove.row === row && lastMove.col === col) {
+              cell.classList.add('last-played');
+              
+              // Aggiungi indicatore
+              const indicator = document.createElement('div');
+              indicator.className = 'move-indicator';
+              cell.appendChild(indicator);
+            }
+            
+            const cellValue = state.microBoards[mi][row][col];
+            if (cellValue) {
+              const text = document.createTextNode(cellValue);
+              cell.appendChild(text);
+            }
+            
             macroCell.appendChild(cell);
           }
         }
         
         board.appendChild(macroCell);
       }
+    }
+    
+    function updateCurrentMove(text) {
+      document.getElementById('current-move').textContent = text;
     }
     
     function updateStats(episode, total) {
@@ -616,29 +993,118 @@
     
     function stopTraining() {
       trainingActive = false;
-      log('⏹️ Training interrotto');
+      log('⏹️ Training interrotto', 'warning');
+      updateCurrentMove('Training interrotto');
     }
     
     async function saveModel() {
-      const saveResult = await model.save('C:\Users\CRE6683\OneDrive - ION\Desktop\projects\RL_training_tool-main\tristris_rl_model.keras');
-      log(saveResult);
-      log('💾 Modello salvato in projects!');
-      alert('Modello salvato! Ora è disponibile nella PWA TrisTris.');
+      try {
+        log('💾 Salvataggio modello in corso...', 'info');
+        
+        // Salva in IndexedDB
+        const saveResult = await model.save('indexeddb://tristris-rl-model');
+        
+        // Salva anche le statistiche
+        const statsToSave = {
+          totalGames: totalGamesPlayed,
+          lastSaved: new Date().toISOString()
+        };
+        localStorage.setItem('tristris-stats', JSON.stringify(statsToSave));
+        
+        log('✅ Modello salvato con successo in IndexedDB!', 'success');
+        updateModelStatus('Modello salvato', true);
+        alert('✅ Modello salvato! Sarà caricato automaticamente al prossimo avvio.');
+      } catch (error) {
+        log('❌ Errore nel salvataggio: ' + error.message, 'warning');
+        alert('Errore nel salvataggio del modello: ' + error.message);
+      }
+    }
+    
+    async function resetModel() {
+      if (confirm('Sei sicuro di voler resettare il modello? Tutti i progressi andranno persi.')) {
+        try {
+          // Elimina il modello salvato
+          await tf.io.removeModel('indexeddb://tristris-rl-model');
+          
+          // Resetta le statistiche
+          localStorage.removeItem('tristris-stats');
+          totalGamesPlayed = 0;
+          document.getElementById('total-games').textContent = '0';
+          
+          // Crea un nuovo modello
+          await createModel();
+          
+          log('🔄 Modello resettato!', 'info');
+          alert('Modello resettato con successo!');
+        } catch (error) {
+          log('⚠️ Errore nel reset: ' + error.message, 'warning');
+        }
+      }
     }
     
     async function testGame() {
-      log('🎮 Test game...');
-      await playTrainingGame(-1);
+      log('🎮 Inizio test game...', 'info');
+      updateCurrentMove('Test in corso...');
+      
+      const state = createInitialState();
+      const epsilon = 0; // Nessuna esplorazione casuale nel test
+      let movesCount = 0;
+      
+      while (true) {
+        const gameEnd = checkGameEnd(state);
+        if (gameEnd.finished) {
+          let resultMsg = '';
+          if (gameEnd.winner === 'draw') {
+            resultMsg = `🤝 PAREGGIO dopo ${movesCount} mosse`;
+          } else if (gameEnd.winner === 'O') {
+            resultMsg = `🏆 VITTORIA O dopo ${movesCount} mosse`;
+          } else {
+            resultMsg = `❌ Vittoria X dopo ${movesCount} mosse`;
+          }
+          log(resultMsg, 'success');
+          updateCurrentMove(resultMsg);
+          break;
+        }
+        
+        const moves = getAllMoves(state);
+        if (moves.length === 0) break;
+        
+        let move;
+        if (state.turn === 0) {
+          // X gioca casualmente
+          move = moves[Math.floor(Math.random() * moves.length)];
+        } else {
+          // O usa la rete neurale
+          move = await selectBestMove(state, moves);
+        }
+        
+        const symbol = state.turn === 0 ? 'X' : 'O';
+        log(`${symbol} → Macro[${move.micro}] Cell[${move.row},${move.col}]`, 'move');
+        updateCurrentMove(`${symbol} gioca: Macro ${move.micro}, Cell [${move.row},${move.col}]`);
+        
+        executeMove(state, move);
+        movesCount++;
+        
+        lastMove = move;
+        forcedCell = state.nextForcedCell;
+        renderBoard(state);
+        
+        // Pausa per visualizzare la mossa
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      renderBoard(state);
     }
     
-    function log(message) {
+    function log(message, type = 'info') {
       const logEl = document.getElementById('log');
       const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      entry.className = `log-entry ${type}`;
+      const time = new Date().toLocaleTimeString('it-IT');
+      entry.textContent = `[${time}] ${message}`;
       logEl.insertBefore(entry, logEl.firstChild);
       
-      while (logEl.children.length > 50) {
+      while (logEl.children.length > 100) {
         logEl.removeChild(logEl.lastChild);
       }
     }
